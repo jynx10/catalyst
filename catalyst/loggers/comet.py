@@ -132,11 +132,9 @@ class CometLogger(ILogger):
         if len(passed_key_parmeters) == 1:
             keys_prefix = passed_key_parmeters[0]
             self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step, prefix=keys_prefix)
-            print(keys_prefix)
         elif len(passed_key_parmeters) > 1:
             keys_prefix = '_'.join(passed_key_parmeters)
             self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step, prefix=keys_prefix)
-            print(keys_prefix)
         else:
             self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step)
 
