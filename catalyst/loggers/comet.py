@@ -27,8 +27,7 @@ class CometLogger(ILogger):
         Read more about it in the `Comet installation docs <https://www.comet.ml/docs/quick-start/>`.
         run: Optional, pass a Comet Experiment run object if you want to continue logging
           to the existing run (resume run).
-          Read more about it
-          `here <>`_.
+          Read more about Existing Experiment `here <https://www.comet.ml/docs/python-sdk/ExistingExperiment/>`_.
         tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.  
         comet_run_kwargs: Optional, additional keyword arguments to be passed directly to the
           `Experiment.__init__() <https://www.comet.ml/docs/python-sdk/Experiment/#experiment__init__>`_ function.
@@ -66,27 +65,6 @@ class CometLogger(ILogger):
             # ...
 
         runner = CustomRunner().run()
-
-    Config API example:
-
-    .. code-block:: yaml
-
-        loggers:
-            neptune:
-                _target_: NeptuneLogger
-                project: my_workspace/my_project
-        ...
-
-    Hydra API example:
-
-    .. code-block:: yaml
-
-        loggers:
-            neptune:
-                _target_: catalyst.dl.NeptuneLogger
-                project: my_workspace/my_project
-                base_namespace: catalyst
-        ...
     """
     
     def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, run: comet_ml.Experiment = None, tags: List = None, **comet_run_kwargs) -> None:
