@@ -3,6 +3,7 @@ import numpy as np
 from catalyst.core.logger import ILogger
 from catalyst.settings import SETTINGS
 import os
+import configparser
 
 if SETTINGS.comet_required:
     import comet_ml
@@ -85,8 +86,17 @@ class CometLogger(ILogger):
         if experiment is None:
             try:
                 if api_key is None:
+                    parser = configparser.ConfigParser()
                     enviornment_api_key = os.environ.get('COMET_API_KEY')
-                    if enviornment_api_key:
+                    try:
+                        parser.read("/root/.comet.config")
+                        config_file_api_key = parser.get("comet", "api_key")
+                    except:
+                        config_file_api_key = None
+                    if config_file_api_key:
+                        self.api_key = config_file_api_key
+                        print("Using the API key stored in the comet config file.")
+                    elif enviornment_api_key:
                         self.api_key = enviornment_api_key
                         print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
                     else:
@@ -96,7 +106,7 @@ class CometLogger(ILogger):
                     project_name=self.project_name, api_key=self.api_key, workspace=self.workspace, **self._comet_experiment_kwargs
                 )
 
-                if tags is not None:
+                if tags:
                     for tag in tags:
                         self.experiment.add_tag(tag)
 
