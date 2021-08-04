@@ -8,6 +8,8 @@ import configparser
 if SETTINGS.comet_required:
     import comet_ml
 
+CONFIG_FILE_PATH = "/root/.comet.config"
+
 
 class CometLogger(ILogger):
     """Comet logger for parameters, metrics, images and other artifacts (videos, audio,
@@ -67,7 +69,7 @@ class CometLogger(ILogger):
         runner = CustomRunner().run()
     """
 
-    def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, experiment: comet_ml.Experiment = None, tags: List = None, **comet_experiment_kwargs) -> None:
+    def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, experiment: comet_ml.Experiment = None, tags: List = None) -> None:
         if project_name is None:
             enviornment_project_name = os.environ.get('COMET_PROJECT_NAME')
             if enviornment_project_name:
@@ -81,7 +83,6 @@ class CometLogger(ILogger):
 
         self.workspace = workspace
         self.api_key = api_key
-        self._comet_experiment_kwargs = comet_experiment_kwargs
 
         if experiment is None:
             try:
@@ -89,7 +90,7 @@ class CometLogger(ILogger):
                     parser = configparser.ConfigParser()
                     enviornment_api_key = os.environ.get('COMET_API_KEY')
                     try:
-                        parser.read("/root/.comet.config")
+                        parser.read(CONFIG_FILE_PATH)
                         config_file_api_key = parser.get("comet", "api_key")
                     except:
                         config_file_api_key = None
@@ -99,21 +100,19 @@ class CometLogger(ILogger):
                     elif enviornment_api_key:
                         self.api_key = enviornment_api_key
                         print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
-                    else:
-                        print(
-                            "A Comet API key was not give and not found in the 'COMET_API_KEY' enviornment variable.")
                 self.experiment = comet_ml.Experiment(
-                    project_name=self.project_name, api_key=self.api_key, workspace=self.workspace, **self._comet_experiment_kwargs
+                    project_name=self.project_name, api_key=self.api_key, workspace=self.workspace
                 )
 
-                if tags:
-                    for tag in tags:
-                        self.experiment.add_tag(tag)
-
             except BaseException as e:
+                self.experiment = None
                 print(e)
         else:
             self.experiment = experiment
+        
+        if tags:
+            for tag in tags:
+                self.experiment.add_tag(tag)
 
     def log_metrics(
         self,
@@ -253,6 +252,10 @@ class CometLogger(ILogger):
                     artifact, current_tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_key_parameters)
         else:
             print("No Artifact or a path to the artifact were provided.")
+
+    def flush_log(self) -> None:
+        """Flushes the loggers."""
+        pass
 
     def close_log(self, scope: str = None) -> None:
         """Closes the logger."""
