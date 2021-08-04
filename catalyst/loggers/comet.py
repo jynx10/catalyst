@@ -65,7 +65,7 @@ class CometLogger(ILogger):
 
         runner = CustomRunner().run()
     """
-    
+
     def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, experiment: comet_ml.Experiment = None, tags: List = None, **comet_experiment_kwargs) -> None:
         if project_name is None:
             enviornment_project_name = os.environ.get('COMET_PROJECT_NAME')
@@ -90,15 +90,16 @@ class CometLogger(ILogger):
                         self.api_key = enviornment_api_key
                         print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
                     else:
-                        print("A Comet API key was not give and not found in the 'COMET_API_KEY' enviornment variable.")
+                        print(
+                            "A Comet API key was not give and not found in the 'COMET_API_KEY' enviornment variable.")
                 self.experiment = comet_ml.Experiment(
-                    project_name = self.project_name, api_key = self.api_key, workspace = self.workspace, **self._comet_experiment_kwargs
+                    project_name=self.project_name, api_key=self.api_key, workspace=self.workspace, **self._comet_experiment_kwargs
                 )
 
                 if tags is not None:
                     for tag in tags:
                         self.experiment.add_tag(tag)
-            
+
             except BaseException as e:
                 print(e)
         else:
@@ -131,10 +132,12 @@ class CometLogger(ILogger):
         passed_key_parmeters = [key_parameter for key_parameter in key_parameters if key_parameter]
         if len(passed_key_parmeters) == 1:
             keys_prefix = passed_key_parmeters[0]
-            self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step, prefix=keys_prefix)
+            self.experiment.log_metrics(metrics, step=global_batch_step,
+                                        epoch=global_batch_step, prefix=keys_prefix)
         elif len(passed_key_parmeters) > 1:
             keys_prefix = '_'.join(passed_key_parmeters)
-            self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step, prefix=keys_prefix)
+            self.experiment.log_metrics(metrics, step=global_batch_step,
+                                        epoch=global_batch_step, prefix=keys_prefix)
         else:
             self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step)
 
@@ -171,10 +174,12 @@ class CometLogger(ILogger):
         passed_key_parmeters = [key_parameter for key_parameter in key_parameters if key_parameter]
         if len(passed_key_parmeters) == 1:
             keys_prefix = passed_key_parmeters[0]
-            self.experiment.log_image(image, f"{keys_prefix}_{current_tag}", step=global_batch_step, )
+            self.experiment.log_image(
+                image, f"{keys_prefix}_{current_tag}", step=global_batch_step, )
         elif len(passed_key_parmeters) > 1:
             keys_prefix = '_'.join(passed_key_parmeters)
-            self.experiment.log_image(image, f"{keys_prefix}_{current_tag}", step=global_batch_step)
+            self.experiment.log_image(
+                image, f"{keys_prefix}_{current_tag}", step=global_batch_step)
         else:
             self.experiment.log_image(image, current_tag, step=global_batch_step)
 
@@ -197,7 +202,7 @@ class CometLogger(ILogger):
             self.experiment.log_parameters(hparams, prefix=keys_prefix)
         else:
             self.experiment.log_parameters(hparams)
-    
+
     def log_artifact(
         self,
         tag: str,
@@ -231,17 +236,18 @@ class CometLogger(ILogger):
             key_parameters = {'stage_key': stage_key, 'loader_key': loader_key}
             passed_key_parameters = {k: v for k, v in key_parameters.items() if v is not None}
             if path_to_artifact:
-                self.experiment.log_asset(path_to_artifact, current_tag, step=global_batch_step, metadata=passed_key_parameters)
+                self.experiment.log_asset(path_to_artifact, current_tag,
+                                          step=global_batch_step, metadata=passed_key_parameters)
             else:
-                self.experiment.log_asset_data(artifact, current_tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_key_parameters)
+                self.experiment.log_asset_data(
+                    artifact, current_tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_key_parameters)
         else:
             print("No Artifact or a path to the artifact were provided.")
 
-
-
-    def close_log(self) -> None:
+    def close_log(self, scope: str = None) -> None:
         """Closes the logger."""
-        self.experiment.end()
+        if scope is None or scope == "experiment":
+            self.experiment.end()
 
 
 __all__ = ["CometLogger"]
