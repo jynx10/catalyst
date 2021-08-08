@@ -81,7 +81,7 @@ class CometLogger(ILogger):
                 print("A project_name has not been set. Using default project name 'general' instead.")
         else:
             self.project_name = project_name
-        
+
         self.logging_disabled = os.getenv('COMET_AUTO_LOG_DISABLE', False)
         self.workspace = workspace
         self.api_key = api_key
@@ -103,14 +103,15 @@ class CometLogger(ILogger):
                     elif enviornment_api_key:
                         self.api_key = enviornment_api_key
                         print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
-                
+
                 if self.comet_mode == 'offline':
                     print("Starting an Offline Experiment")
-                    self.offline_directory = os.getenv('COMET_OFFLINE_DIRECTORY')  
-                    self.experiment = comet_ml.OfflineExperiment(project_name=self.project_name, workspace=self.workspace, offline_directory=self.offline_directory)
+                    self.offline_directory = os.getenv('COMET_OFFLINE_DIRECTORY')
+                    self.experiment = comet_ml.OfflineExperiment(
+                        project_name=self.project_name, workspace=self.workspace, offline_directory=self.offline_directory, disabled=self.logging_disabled)
                 else:
                     self.experiment = comet_ml.Experiment(
-                        project_name=self.project_name, api_key=self.api_key, workspace=self.workspace
+                        project_name=self.project_name, api_key=self.api_key, workspace=self.workspace, disabled=self.logging_disabled
                     )
 
             except BaseException as e:
@@ -118,7 +119,7 @@ class CometLogger(ILogger):
                 print(e)
         else:
             self.experiment = experiment
-        
+
         if tags:
             for tag in tags:
                 self.experiment.add_tag(tag)
@@ -153,8 +154,9 @@ class CometLogger(ILogger):
             keys_prefix = passed_key_parmeters[0]
         elif len(passed_key_parmeters) > 1:
             keys_prefix = '_'.join(passed_key_parmeters)
-        
-        self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step, prefix=keys_prefix)
+
+        self.experiment.log_metrics(metrics, step=global_batch_step,
+                                    epoch=global_batch_step, prefix=keys_prefix)
 
     def log_image(
         self,
