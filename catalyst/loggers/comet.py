@@ -4,11 +4,13 @@ from catalyst.core.logger import ILogger
 from catalyst.settings import SETTINGS
 import os
 import configparser
+import pickle
 
 if SETTINGS.comet_required:
     import comet_ml
 
 CONFIG_FILE_PATH = "/root/.comet.config"
+CONFIG_FILE_PATH = os.environ.get("COMET_CONFIG_PATH", "~/.comet.config")
 
 
 class CometLogger(ILogger):
@@ -27,7 +29,7 @@ class CometLogger(ILogger):
         Read more about workspaces in the `Comet User Interface docs <https://www.comet.ml/docs/user-interface/>`
         api_token: Optional, ``str``. Your Comet's API token. 
         Read more about it in the `Comet installation docs <https://www.comet.ml/docs/quick-start/>`.
-        experiment: Optional, pass a Comet Experiment object if you want to continue logging
+        experiment: Optional, pass a Comet Existing Experiment object if you want to continue logging
           to the existing experiment (resume experiment).
           Read more about Existing Experiment `here <https://www.comet.ml/docs/python-sdk/ExistingExperiment/>`_.
         tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.  
@@ -69,20 +71,21 @@ class CometLogger(ILogger):
         runner = CustomRunner().run()
     """
 
-    def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, experiment: comet_ml.Experiment = None, tags: List = None) -> None:
+    def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, experiment: comet_ml.ExistingExperiment = None, tags: List = None) -> None:
         if project_name is None:
             enviornment_project_name = os.environ.get('COMET_PROJECT_NAME')
             if enviornment_project_name:
                 self.project_name = enviornment_project_name
                 print("Using the project name stored in the 'COMET_PROJECT_NAME' enviornment variable.")
             else:
-                self.project_name = 'experiments'
-                print("A project_name has not been set. Using default project name 'experiments' instead.")
+                print("A project_name has not been set. Using default project name 'general' instead.")
         else:
             self.project_name = project_name
-
+        
+        self.logging_disabled = os.getenv('COMET_AUTO_LOG_DISABLE', False)
         self.workspace = workspace
         self.api_key = api_key
+        self.comet_mode = os.getenv('COMET_MODE', 'online')
 
         if experiment is None:
             try:
@@ -100,12 +103,18 @@ class CometLogger(ILogger):
                     elif enviornment_api_key:
                         self.api_key = enviornment_api_key
                         print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
-                self.experiment = comet_ml.Experiment(
-                    project_name=self.project_name, api_key=self.api_key, workspace=self.workspace
-                )
+                
+                if self.comet_mode == 'offline':
+                    print("Starting an Offline Experiment")
+                    self.offline_directory = os.getenv('COMET_OFFLINE_DIRECTORY')  
+                    self.experiment = comet_ml.OfflineExperiment(project_name=self.project_name, workspace=self.workspace, offline_directory=self.offline_directory)
+                else:
+                    self.experiment = comet_ml.Experiment(
+                        project_name=self.project_name, api_key=self.api_key, workspace=self.workspace
+                    )
 
             except BaseException as e:
-                self.experiment = None
+                experiment = None
                 print(e)
         else:
             self.experiment = experiment
@@ -139,21 +148,18 @@ class CometLogger(ILogger):
         key_parameters = [stage_key, loader_key, scope]
         # Removes all None values from list.
         passed_key_parmeters = [key_parameter for key_parameter in key_parameters if key_parameter]
+        keys_prefix = None
         if len(passed_key_parmeters) == 1:
             keys_prefix = passed_key_parmeters[0]
-            self.experiment.log_metrics(metrics, step=global_batch_step,
-                                        epoch=global_batch_step, prefix=keys_prefix)
         elif len(passed_key_parmeters) > 1:
             keys_prefix = '_'.join(passed_key_parmeters)
-            self.experiment.log_metrics(metrics, step=global_batch_step,
-                                        epoch=global_batch_step, prefix=keys_prefix)
-        else:
-            self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step)
+        
+        self.experiment.log_metrics(metrics, step=global_batch_step, epoch=global_batch_step, prefix=keys_prefix)
 
     def log_image(
         self,
-        tag: str,
-        image: np.ndarray,
+        tag: str = "images",
+        image: np.ndarray = [],
         scope: str = None,
         # experiment info
         run_key: str = None,
@@ -174,23 +180,17 @@ class CometLogger(ILogger):
         loader_sample_step: int = 0,
     ) -> None:
         """Logs image to the logger."""
-        if tag:
-            current_tag = tag
-        else:
-            current_tag = "images"
+        self.image_name = tag
         key_parameters = [stage_key, loader_key, scope]
         # Removes all None values from list.
         passed_key_parmeters = [key_parameter for key_parameter in key_parameters if key_parameter]
         if len(passed_key_parmeters) == 1:
             keys_prefix = passed_key_parmeters[0]
-            self.experiment.log_image(
-                image, f"{keys_prefix}_{current_tag}", step=global_batch_step, )
+            self.image_name = f"{keys_prefix}_{tag}"
         elif len(passed_key_parmeters) > 1:
             keys_prefix = '_'.join(passed_key_parmeters)
-            self.experiment.log_image(
-                image, f"{keys_prefix}_{current_tag}", step=global_batch_step)
-        else:
-            self.experiment.log_image(image, current_tag, step=global_batch_step)
+            self.image_name = f"{keys_prefix}_{tag}"
+        self.experiment.log_image(image, name=self.image_name, step=global_batch_step)
 
     def log_hparams(
         self,
@@ -214,7 +214,7 @@ class CometLogger(ILogger):
 
     def log_artifact(
         self,
-        tag: str,
+        tag: str = "artifact",
         artifact: object = None,
         path_to_artifact: str = None,
         scope: str = None,
@@ -238,20 +238,16 @@ class CometLogger(ILogger):
     ) -> None:
         """Logs artifact (arbitrary file like audio, video, model weights) to the logger."""
         if path_to_artifact or artifact:
-            if tag:
-                current_tag = tag
-            else:
-                current_tag = "artifact"
             key_parameters = {'stage_key': stage_key, 'loader_key': loader_key}
             passed_key_parameters = {k: v for k, v in key_parameters.items() if v is not None}
             if path_to_artifact:
-                self.experiment.log_asset(path_to_artifact, current_tag,
+                self.experiment.log_asset(path_to_artifact, tag,
                                           step=global_batch_step, metadata=passed_key_parameters)
             else:
                 self.experiment.log_asset_data(
-                    artifact, current_tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_key_parameters)
+                    pickle.dumps(artifact), tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_key_parameters)
         else:
-            print("No Artifact or a path to the artifact were provided.")
+            print("No Artifact Data or a path to the artifact were provided.")
 
     def flush_log(self) -> None:
         """Flushes the loggers."""
