@@ -163,7 +163,7 @@ class CometLogger(ILogger):
         """Logs the metrics to the logger."""
 
         prefix_parameters = [stage_key, loader_key, scope]
-        prefix = _format_prefix(prefix_parameters)
+        prefix = self._format_prefix(prefix_parameters)
 
         self.experiment.log_metrics(
             metrics,
@@ -198,7 +198,7 @@ class CometLogger(ILogger):
         """Logs image to the logger."""
 
         prefix_parameters = [stage_key, loader_key, scope]
-        prefix = _format_prefix(prefix_parameters)
+        prefix = self._format_prefix(prefix_parameters)
         self.image_name = f"{prefix}_{tag}"
 
         self.experiment.log_image(
