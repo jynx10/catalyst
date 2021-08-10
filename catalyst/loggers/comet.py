@@ -9,6 +9,7 @@ from catalyst.settings import SETTINGS
 if SETTINGS.comet_required:
     import comet_ml
 
+
 class CometLogger(ILogger):
     """Comet logger for parameters, metrics, images and other artifacts (videos, audio,
     model checkpoints, etc.).
