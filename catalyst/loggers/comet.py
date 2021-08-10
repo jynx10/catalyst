@@ -2,15 +2,14 @@ from typing import Dict, List
 import numpy as np
 from catalyst.core.logger import ILogger
 from catalyst.settings import SETTINGS
-import os
-import configparser
-import pickle
+import os, sys, pickle
 
 if SETTINGS.comet_required:
     import comet_ml
 
 CONFIG_FILE_PATH = "/root/.comet.config"
 CONFIG_FILE_PATH = os.environ.get("COMET_CONFIG_PATH", "~/.comet.config")
+
 
 def _format_prefix(prefix_parameters: List) -> None:
     """Formats the prefix of the log according to the given parameters.
@@ -48,17 +47,15 @@ class CometLogger(ILogger):
 
     Args:
         project_name: Optional, ``str``, the name of the project within Comets's run.
-          Default is "experiments".
+          Default is "general" and can be seen in the comet UI under "Uncategorized Experiments".
         workspace : Optional, ``str``. Attach an experiment to a project the belongs to this workspace.
         Read more about workspaces in the `Comet User Interface docs <https://www.comet.ml/docs/user-interface/>`
-        api_token: Optional, ``str``. Your Comet's API token. 
+        api_token: Optional, ``str``. Your Comet's API token.
         Read more about it in the `Comet installation docs <https://www.comet.ml/docs/quick-start/>`.
         experiment: Optional, pass a Comet Existing Experiment object if you want to continue logging
           to the existing experiment (resume experiment).
           Read more about Existing Experiment `here <https://www.comet.ml/docs/python-sdk/ExistingExperiment/>`_.
-        tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.  
-        comet_experiment_kwargs: Optional, additional keyword arguments to be passed directly to the
-          `Experiment.__init__() <https://www.comet.ml/docs/python-sdk/Experiment/#experiment__init__>`_ function.
+        tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.
 
     Python API examples:
 
@@ -104,19 +101,6 @@ class CometLogger(ILogger):
 
         if experiment is None:
             try:
-                if api_key is None:
-                    parser = configparser.ConfigParser()
-                    enviornment_api_key = os.environ.get('COMET_API_KEY')
-                    parser.read(CONFIG_FILE_PATH)
-                    config_file_api_key = parser.get("comet", "api_key", fallback=None)
-
-                    if config_file_api_key:
-                        self.api_key = config_file_api_key
-                        print("Using the API key stored in the comet config file.")
-                    elif enviornment_api_key:
-                        self.api_key = enviornment_api_key
-                        print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
-
                 if self.comet_mode == 'offline':
                     print("Starting an Offline Experiment")
                     self.offline_directory = os.getenv('COMET_OFFLINE_DIRECTORY')
@@ -128,8 +112,8 @@ class CometLogger(ILogger):
                     )
 
             except BaseException as e:
-                experiment = None
                 print(e)
+                sys.exit()
         else:
             self.experiment = experiment
 
@@ -210,7 +194,7 @@ class CometLogger(ILogger):
 
         prefix_parameters = [stage_key, scope]
         prefix = _format_prefix(prefix_parameters)
-        
+
         self.experiment.log_parameters(hparams, prefix=prefix)
 
     def log_artifact(
@@ -240,10 +224,11 @@ class CometLogger(ILogger):
         """Logs artifact (arbitrary file like audio, video, model weights) to the logger."""
 
         metadata_parameters = {'stage_key': stage_key, 'loader_key': loader_key}
-        passed_metadata_parameters = {k: v for k, v in metadata_parameters.items() if v is not None}
+        passed_metadata_parameters = {k: v for k,
+                                      v in metadata_parameters.items() if v is not None}
         if path_to_artifact:
             self.experiment.log_asset(path_to_artifact, tag,
-                                        step=global_batch_step, metadata=passed_metadata_parameters)
+                                      step=global_batch_step, metadata=passed_metadata_parameters)
         else:
             self.experiment.log_asset_data(
                 pickle.dumps(artifact), tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_metadata_parameters)
