@@ -11,7 +11,6 @@ from catalyst.settings import SETTINGS
 if SETTINGS.comet_required:
     import comet_ml
 
-
 class CometLogger(ILogger):
     """Comet logger for parameters, metrics, images and other artifacts (videos, audio,
     model checkpoints, etc.).
@@ -165,7 +164,7 @@ class CometLogger(ILogger):
         """Logs the metrics to the logger."""
 
         prefix_parameters = [stage_key, loader_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
+        prefix = _format_prefix(prefix_parameters)
 
         self.experiment.log_metrics(
             metrics,
@@ -200,7 +199,7 @@ class CometLogger(ILogger):
         """Logs image to the logger."""
 
         prefix_parameters = [stage_key, loader_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
+        prefix = _format_prefix(prefix_parameters)
         self.image_name = f"{prefix}_{tag}"
 
         self.experiment.log_image(
