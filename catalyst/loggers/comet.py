@@ -1,16 +1,15 @@
 from typing import Dict, List
+import configparser
+import os
+import pickle
+
 import numpy as np
+
 from catalyst.core.logger import ILogger
 from catalyst.settings import SETTINGS
-import os
-import configparser
-import pickle
 
 if SETTINGS.comet_required:
     import comet_ml
-
-CONFIG_FILE_PATH = "/root/.comet.config"
-CONFIG_FILE_PATH = os.environ.get("COMET_CONFIG_PATH", "~/.comet.config")
 
 
 class CometLogger(ILogger):
@@ -20,20 +19,16 @@ class CometLogger(ILogger):
     Comet documentation: https://www.comet.ml/docs/
 
     To start with Comet please check out: https://www.comet.ml/docs/quick-start/.
-    You will need an ``api_token`` and experiment with a project name to log your Catalyst runs to.
+    You will need an ``api_key`` to log your Catalyst runs to Comet.
 
     Args:
-        project_name: Optional, ``str``, the name of the project within Comets's run.
-          Default is "experiments".
         workspace : Optional, ``str``. Attach an experiment to a project the belongs to this workspace.
-        Read more about workspaces in the `Comet User Interface docs <https://www.comet.ml/docs/user-interface/>`
-        api_token: Optional, ``str``. Your Comet's API token. 
-        Read more about it in the `Comet installation docs <https://www.comet.ml/docs/quick-start/>`.
-        experiment: Optional, pass a Comet Existing Experiment object if you want to continue logging
-          to the existing experiment (resume experiment).
-          Read more about Existing Experiment `here <https://www.comet.ml/docs/python-sdk/ExistingExperiment/>`_.
-        tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.  
-        comet_experiment_kwargs: Optional, additional keyword arguments to be passed directly to the
+            Read more about workspaces in the `Comet User Interface docs <https://www.comet.ml/docs/user-interface/>`
+        project_name: Optional, ``str``, the name of the project within Comets's run.
+        experiment_id: Optional, pass an Experiment Key string if you want to continue logging to an existing experiment (resume experiment).
+            Read more about Existing Experiment `here <https://www.comet.ml/docs/python-sdk/ExistingExperiment/>`_.
+        tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.
+        experiment_kwargs: Optional, additional keyword arguments to be passed directly to the
           `Experiment.__init__() <https://www.comet.ml/docs/python-sdk/Experiment/#experiment__init__>`_ function.
 
     Python API examples:
@@ -71,63 +66,70 @@ class CometLogger(ILogger):
         runner = CustomRunner().run()
     """
 
-    def __init__(self, project_name: str = None, workspace: str = None, api_key: str = None, experiment: comet_ml.ExistingExperiment = None, tags: List = None) -> None:
-        self.project_name = project_name
-        self.logging_disabled = os.getenv('COMET_AUTO_LOG_DISABLE', False)
+    def __init__(
+        self,
+        workspace: str = None,
+        project_name: str = None,
+        experiment_id: str = None,
+        comet_mode: str = "online",
+        tags: List = None,
+        experiment_kwargs: dict = {},
+    ) -> None:
         self.workspace = workspace
-        self.api_key = api_key
-        self.comet_mode = os.getenv('COMET_MODE', 'online')
+        self.project_name = project_name
+        self.experiment_id = experiment_id
+        self.experiment_kwargs = experiment_kwargs
+        self.comet_mode = comet_mode
 
-        if experiment is None:
-            try:
-                if api_key is None:
-                    parser = configparser.ConfigParser()
-                    enviornment_api_key = os.environ.get('COMET_API_KEY')
-                    parser.read(CONFIG_FILE_PATH)
-                    config_file_api_key = parser.get("comet", "api_key", fallback=None)
-                    
-                    if config_file_api_key:
-                        self.api_key = config_file_api_key
-                        print("Using the API key stored in the comet config file.")
-                    elif enviornment_api_key:
-                        self.api_key = enviornment_api_key
-                        print("Using the API key stored in the COMET_API_KEY' enviornment variable.")
-
-                if self.comet_mode == 'offline':
-                    print("Starting an Offline Experiment")
-                    self.offline_directory = os.getenv('COMET_OFFLINE_DIRECTORY')
-                    self.experiment = comet_ml.OfflineExperiment(
-                        project_name=self.project_name, workspace=self.workspace, offline_directory=self.offline_directory, disabled=self.logging_disabled)
-                else:
-                    self.experiment = comet_ml.Experiment(
-                        project_name=self.project_name, api_key=self.api_key, workspace=self.workspace, disabled=self.logging_disabled
+        def _get_experiment(mode, experiment_id=None):
+            if mode == "offline":
+                if experiment_id:
+                    return comet_ml.ExistingOfflineExperiment(
+                        previous_experiment=experiment_id,
+                        workspace=self.workspace,
+                        project_name=self.project_name,
+                        **self.experiment_kwargs,
                     )
 
-            except BaseException as e:
-                experiment = None
-                print(e)
-        else:
-            self.experiment = experiment
+                return comet_ml.OfflineExperiment(
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    **self.experiment_kwargs,
+                )
 
+            else:
+                if experiment_id:
+                    return comet_ml.ExistingExperiment(
+                        previous_experiment=experiment_id,
+                        workspace=self.workspace,
+                        project_name=self.project_name,
+                        **self.experiment_kwargs,
+                    )
+
+                return comet_ml.Experiment(
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    **self.experiment_kwargs,
+                )
+
+        self.experiment = _get_experiment(self.comet_mode, self.experiment_id)
         if tags:
-            for tag in tags:
-                self.experiment.add_tag(tag)
-    
+            self.experiment.add_tags(tags)
 
-    def _format_prefix(prefix_parameters: List) -> None:
+    def _format_prefix(self, prefix_parameters: List) -> None:
         """Formats the prefix of the log according to the given parameters.
-        
+
         Parameters:
             prefix_parameters (List): A list of the given arguments.
 
         Returns:
             prefix (str): The formatted prefix string.
-        
         """
-
         prefix = None
         passed_prefix_parameters = [
-            parameter for parameter in prefix_parameters if parameter is not None
+            parameter
+            for parameter in prefix_parameters
+            if parameter is not None
         ]
 
         if len(passed_prefix_parameters) > 1:
@@ -165,8 +167,12 @@ class CometLogger(ILogger):
         prefix_parameters = [stage_key, loader_key, scope]
         prefix = self._format_prefix(prefix_parameters)
 
-        self.experiment.log_metrics(metrics, step=global_batch_step,
-                                    epoch=global_batch_step, prefix=prefix)
+        self.experiment.log_metrics(
+            metrics,
+            step=global_batch_step,
+            epoch=global_batch_step,
+            prefix=prefix,
+        )
 
     def log_image(
         self,
@@ -197,7 +203,9 @@ class CometLogger(ILogger):
         prefix = self._format_prefix(prefix_parameters)
         self.image_name = f"{prefix}_{tag}"
 
-        self.experiment.log_image(image, name=self.image_name, step=global_batch_step)
+        self.experiment.log_image(
+            image, name=self.image_name, step=global_batch_step
+        )
 
     def log_hparams(
         self,
@@ -211,7 +219,7 @@ class CometLogger(ILogger):
 
         prefix_parameters = [stage_key, scope]
         prefix = self._format_prefix(prefix_parameters)
-        
+
         self.experiment.log_parameters(hparams, prefix=prefix)
 
     def log_artifact(
@@ -240,14 +248,28 @@ class CometLogger(ILogger):
     ) -> None:
         """Logs artifact (arbitrary file like audio, video, model weights) to the logger."""
 
-        metadata_parameters = {'stage_key': stage_key, 'loader_key': loader_key}
-        passed_metadata_parameters = {k: v for k, v in metadata_parameters.items() if v is not None}
+        metadata_parameters = {
+            "stage_key": stage_key,
+            "loader_key": loader_key,
+        }
+        passed_metadata_parameters = {
+            k: v for k, v in metadata_parameters.items() if v is not None
+        }
         if path_to_artifact:
-            self.experiment.log_asset(path_to_artifact, tag,
-                                        step=global_batch_step, metadata=passed_metadata_parameters)
+            self.experiment.log_asset(
+                path_to_artifact,
+                tag,
+                step=global_batch_step,
+                metadata=passed_metadata_parameters,
+            )
         else:
             self.experiment.log_asset_data(
-                pickle.dumps(artifact), tag, step=global_batch_step, epoch=global_epoch_step, metadata=passed_metadata_parameters)
+                pickle.dumps(artifact),
+                tag,
+                step=global_batch_step,
+                epoch=global_epoch_step,
+                metadata=passed_metadata_parameters,
+            )
 
     def flush_log(self) -> None:
         """Flushes the loggers."""
