@@ -165,12 +165,13 @@ class CometLogger(ILogger):
         prefix_parameters = [stage_key, loader_key, scope]
         prefix = self._format_prefix(prefix_parameters)
 
-        self.experiment.log_metrics(
-            metrics,
-            step=global_batch_step,
-            epoch=global_batch_step,
-            prefix=prefix,
-        )
+        if global_batch_step % 10 == 0:
+            self.experiment.log_metrics(
+                metrics,
+                step=global_batch_step,
+                epoch=global_batch_step,
+                prefix=prefix,
+            )
 
     def log_image(
         self,
