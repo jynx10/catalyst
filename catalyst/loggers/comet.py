@@ -71,6 +71,7 @@ class CometLogger(ILogger):
         experiment_id: str = None,
         comet_mode: str = "online",
         tags: List = None,
+        logging_frequency: int = 0,
         experiment_kwargs: dict = {},
     ) -> None:
         self.workspace = workspace
@@ -78,6 +79,7 @@ class CometLogger(ILogger):
         self.experiment_id = experiment_id
         self.experiment_kwargs = experiment_kwargs
         self.comet_mode = comet_mode
+        self.logging_frequency = logging_frequency
 
         def _get_experiment(mode, experiment_id=None):
             if mode == "offline":
@@ -165,7 +167,7 @@ class CometLogger(ILogger):
         prefix_parameters = [stage_key, loader_key, scope]
         prefix = self._format_prefix(prefix_parameters)
 
-        if global_batch_step % 10 == 0:
+        if global_batch_step % self.logging_frequency == 0:
             self.experiment.log_metrics(
                 metrics,
                 step=global_batch_step,
