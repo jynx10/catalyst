@@ -12,6 +12,30 @@ if SETTINGS.comet_required:
 CONFIG_FILE_PATH = "/root/.comet.config"
 CONFIG_FILE_PATH = os.environ.get("COMET_CONFIG_PATH", "~/.comet.config")
 
+def _format_prefix(prefix_parameters: List) -> None:
+    """Formats the prefix of the log according to the given parameters.
+    
+    Parameters:
+        prefix_parameters (List): A list of the given arguments.
+
+    Returns:
+        prefix (str): The formatted prefix string.
+    
+    """
+
+    prefix = None
+    passed_prefix_parameters = [
+        parameter for parameter in prefix_parameters if parameter is not None
+    ]
+
+    if len(passed_prefix_parameters) > 1:
+        prefix = "_".join(passed_prefix_parameters)
+
+    elif len(passed_prefix_parameters) == 1:
+        prefix = passed_prefix_parameters[0]
+
+    return prefix
+
 
 class CometLogger(ILogger):
     """Comet logger for parameters, metrics, images and other artifacts (videos, audio,
@@ -85,7 +109,7 @@ class CometLogger(ILogger):
                     enviornment_api_key = os.environ.get('COMET_API_KEY')
                     parser.read(CONFIG_FILE_PATH)
                     config_file_api_key = parser.get("comet", "api_key", fallback=None)
-                    
+
                     if config_file_api_key:
                         self.api_key = config_file_api_key
                         print("Using the API key stored in the comet config file.")
@@ -112,31 +136,6 @@ class CometLogger(ILogger):
         if tags:
             for tag in tags:
                 self.experiment.add_tag(tag)
-    
-
-    def _format_prefix(prefix_parameters: List) -> None:
-        """Formats the prefix of the log according to the given parameters.
-        
-        Parameters:
-            prefix_parameters (List): A list of the given arguments.
-
-        Returns:
-            prefix (str): The formatted prefix string.
-        
-        """
-
-        prefix = None
-        passed_prefix_parameters = [
-            parameter for parameter in prefix_parameters if parameter is not None
-        ]
-
-        if len(passed_prefix_parameters) > 1:
-            prefix = "_".join(passed_prefix_parameters)
-
-        elif len(passed_prefix_parameters) == 1:
-            prefix = passed_prefix_parameters[0]
-
-        return prefix
 
     def log_metrics(
         self,
@@ -163,7 +162,7 @@ class CometLogger(ILogger):
         """Logs the metrics to the logger."""
 
         prefix_parameters = [stage_key, loader_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
+        prefix = _format_prefix(prefix_parameters)
 
         self.experiment.log_metrics(metrics, step=global_batch_step,
                                     epoch=global_batch_step, prefix=prefix)
@@ -194,7 +193,7 @@ class CometLogger(ILogger):
         """Logs image to the logger."""
 
         prefix_parameters = [stage_key, loader_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
+        prefix = _format_prefix(prefix_parameters)
         self.image_name = f"{prefix}_{tag}"
 
         self.experiment.log_image(image, name=self.image_name, step=global_batch_step)
@@ -210,7 +209,7 @@ class CometLogger(ILogger):
         """Logs hyperparameters to the logger."""
 
         prefix_parameters = [stage_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
+        prefix = _format_prefix(prefix_parameters)
         
         self.experiment.log_parameters(hparams, prefix=prefix)
 
