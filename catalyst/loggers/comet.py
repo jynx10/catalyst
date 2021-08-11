@@ -82,6 +82,7 @@ class CometLogger(ILogger):
         self.logging_frequency = logging_frequency
 
         self.experiment = self._get_experiment(self.comet_mode, self.experiment_id)
+        self.experiment.log_other("Created from", "Catalyst")
         if tags is not None:
             self.experiment.add_tags(tags)
     
