@@ -71,6 +71,7 @@ class CometLogger(ILogger):
         experiment_id: str = None,
         comet_mode: str = "online",
         tags: List = None,
+        logging_frequency: int = 1,
         experiment_kwargs: dict = {},
     ) -> None:
         self.workspace = workspace
@@ -78,41 +79,42 @@ class CometLogger(ILogger):
         self.experiment_id = experiment_id
         self.experiment_kwargs = experiment_kwargs
         self.comet_mode = comet_mode
+        self.logging_frequency = logging_frequency
 
-        def _get_experiment(mode, experiment_id=None):
-            if mode == "offline":
-                if experiment_id:
-                    return comet_ml.ExistingOfflineExperiment(
-                        previous_experiment=experiment_id,
-                        workspace=self.workspace,
-                        project_name=self.project_name,
-                        **self.experiment_kwargs,
-                    )
-
-                return comet_ml.OfflineExperiment(
-                    workspace=self.workspace,
-                    project_name=self.project_name,
-                    **self.experiment_kwargs,
-                )
-
-            else:
-                if experiment_id:
-                    return comet_ml.ExistingExperiment(
-                        previous_experiment=experiment_id,
-                        workspace=self.workspace,
-                        project_name=self.project_name,
-                        **self.experiment_kwargs,
-                    )
-
-                return comet_ml.Experiment(
-                    workspace=self.workspace,
-                    project_name=self.project_name,
-                    **self.experiment_kwargs,
-                )
-
-        self.experiment = _get_experiment(self.comet_mode, self.experiment_id)
-        if tags:
+        self.experiment = self._get_experiment(self.comet_mode, self.experiment_id)
+        if tags is not None:
             self.experiment.add_tags(tags)
+    
+    def _get_experiment(self, mode, experiment_id=None):
+        if mode == "offline":
+            if experiment_id is not None:
+                return comet_ml.ExistingOfflineExperiment(
+                    previous_experiment=experiment_id,
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    **self.experiment_kwargs,
+                )
+
+            return comet_ml.OfflineExperiment(
+                workspace=self.workspace,
+                project_name=self.project_name,
+                **self.experiment_kwargs,
+            )
+
+        else:
+            if experiment_id is not None:
+                return comet_ml.ExistingExperiment(
+                    previous_experiment=experiment_id,
+                    workspace=self.workspace,
+                    project_name=self.project_name,
+                    **self.experiment_kwargs,
+                )
+
+            return comet_ml.Experiment(
+                workspace=self.workspace,
+                project_name=self.project_name,
+                **self.experiment_kwargs,
+            )
 
     def _format_prefix(self, prefix_parameters: List) -> None:
         """Formats the prefix of the log according to the given parameters.
@@ -165,12 +167,13 @@ class CometLogger(ILogger):
         prefix_parameters = [stage_key, loader_key, scope]
         prefix = self._format_prefix(prefix_parameters)
 
-        self.experiment.log_metrics(
-            metrics,
-            step=global_batch_step,
-            epoch=global_batch_step,
-            prefix=prefix,
-        )
+        if global_batch_step % self.logging_frequency == 0:
+            self.experiment.log_metrics(
+                metrics,
+                step=global_batch_step,
+                epoch=global_batch_step,
+                prefix=prefix,
+            )
 
     def log_image(
         self,
