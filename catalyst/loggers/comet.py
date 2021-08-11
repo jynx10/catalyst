@@ -171,7 +171,7 @@ class CometLogger(ILogger):
             self.experiment.log_metrics(
                 metrics,
                 step=global_batch_step,
-                epoch=global_batch_step,
+                epoch=global_epoch_step,
                 prefix=prefix,
             )
 
