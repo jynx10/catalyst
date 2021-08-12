@@ -85,18 +85,18 @@ class CometLogger(ILogger):
         self.experiment.log_other("Created from", "Catalyst")
         if tags is not None:
             self.experiment.add_tags(tags)
-    
+
     def _get_experiment(self, mode, experiment_id=None):
         if mode == "offline":
-            if experiment_id is not None:
-                return comet_ml.ExistingOfflineExperiment(
-                    previous_experiment=experiment_id,
+            if experiment_id is None:
+                return comet_ml.OfflineExperiment(
                     workspace=self.workspace,
                     project_name=self.project_name,
                     **self.experiment_kwargs,
                 )
 
-            return comet_ml.OfflineExperiment(
+            return comet_ml.ExistingOfflineExperiment(
+                previous_experiment=experiment_id,
                 workspace=self.workspace,
                 project_name=self.project_name,
                 **self.experiment_kwargs,
@@ -104,14 +104,14 @@ class CometLogger(ILogger):
 
         else:
             if experiment_id is not None:
-                return comet_ml.ExistingExperiment(
-                    previous_experiment=experiment_id,
+                return comet_ml.Experiment(
                     workspace=self.workspace,
                     project_name=self.project_name,
                     **self.experiment_kwargs,
                 )
 
-            return comet_ml.Experiment(
+            return comet_ml.ExistingExperiment(
+                previous_experiment=experiment_id,
                 workspace=self.workspace,
                 project_name=self.project_name,
                 **self.experiment_kwargs,
