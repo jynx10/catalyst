@@ -146,7 +146,7 @@ class CometLogger(ILogger):
                 metrics,
                 step=global_batch_step,
                 epoch=global_epoch_step,
-                prefix=scope,
+                prefix=f"{stage_key}/{scope}",
             )
 
     def log_image(
