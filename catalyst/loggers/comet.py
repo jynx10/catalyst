@@ -117,30 +117,6 @@ class CometLogger(ILogger):
                 **self.experiment_kwargs,
             )
 
-    def _format_prefix(self, prefix_parameters: List) -> None:
-        """Formats the prefix of the log according to the given parameters.
-
-        Parameters:
-            prefix_parameters (List): A list of the given arguments.
-
-        Returns:
-            prefix (str): The formatted prefix string.
-        """
-        prefix = None
-        passed_prefix_parameters = [
-            parameter
-            for parameter in prefix_parameters
-            if parameter is not None
-        ]
-
-        if len(passed_prefix_parameters) > 1:
-            prefix = "_".join(passed_prefix_parameters)
-
-        elif len(passed_prefix_parameters) == 1:
-            prefix = passed_prefix_parameters[0]
-
-        return prefix
-
     def log_metrics(
         self,
         metrics: Dict[str, float],
@@ -165,15 +141,12 @@ class CometLogger(ILogger):
     ) -> None:
         """Logs the metrics to the logger."""
 
-        prefix_parameters = [stage_key, loader_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
-
         if global_batch_step % self.logging_frequency == 0:
             self.experiment.log_metrics(
                 metrics,
                 step=global_batch_step,
                 epoch=global_epoch_step,
-                prefix=prefix,
+                prefix=f"{stage_key}/{scope}",
             )
 
     def log_image(
@@ -201,9 +174,7 @@ class CometLogger(ILogger):
     ) -> None:
         """Logs image to the logger."""
 
-        prefix_parameters = [stage_key, loader_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
-        self.image_name = f"{prefix}_{tag}"
+        self.image_name = f"{scope}_{tag}"
 
         self.experiment.log_image(
             image, name=self.image_name, step=global_batch_step
@@ -219,10 +190,7 @@ class CometLogger(ILogger):
     ) -> None:
         """Logs hyperparameters to the logger."""
 
-        prefix_parameters = [stage_key, scope]
-        prefix = self._format_prefix(prefix_parameters)
-
-        self.experiment.log_parameters(hparams, prefix=prefix)
+        self.experiment.log_parameters(hparams, prefix=scope)
 
     def log_artifact(
         self,
