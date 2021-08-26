@@ -55,7 +55,7 @@ class CometLogger(ILogger):
             def get_loggers(self):
                 return {
                     "console": dl.ConsoleLogger(),
-                    "comet": dl.CommetLogger(
+                    "comet": dl.CometLogger(
                         project_name="my-comet-project"
                     )
                 }
