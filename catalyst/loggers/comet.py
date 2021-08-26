@@ -13,10 +13,10 @@ if SETTINGS.comet_required:
 class CometLogger(ILogger):
     """Comet logger for parameters, metrics, images and other artifacts
     (videos, audio, model checkpoints, etc.).
-    
+
     You will need a Comet API Key to log your Catalyst runs to Comet.
     You can sign up for a free account here: https://www.comet.ml/signup
-
+    
     Check out our Quickstart Guide to learn more: 
     https://www.comet.ml/docs/quick-start/.
 
