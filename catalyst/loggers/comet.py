@@ -11,8 +11,9 @@ if SETTINGS.comet_required:
 
 
 class CometLogger(ILogger):
-    """Comet logger for parameters, metrics, images and other artifacts (videos, audio,
-    model checkpoints, etc.).
+    """Comet logger for parameters, metrics, images and other artifacts 
+    (videos, audio, model checkpoints, etc.).
+    
     You will need a Comet API Key to log your Catalyst runs to Comet.
     You can sign up for a free account here: https://www.comet.ml/signup
 
@@ -25,7 +26,8 @@ class CometLogger(ILogger):
         experiment_id: Optional,``str``, Experiment Key string of an existing Experiment. 
             Used to continue logging to an existing experiment (resume experiment)..
         tags: Optional,``list[str]``, A list of tags to add to the Experiment.
-        experiment_kwargs: Optional,``dict``, Additional keyword arguments for the Experiment object.
+        experiment_kwargs: Optional,``dict``, Additional keyword arguments. 
+            Used to pass additional arguments to the Experiment object
 
     Python API examples:
 
@@ -60,6 +62,21 @@ class CometLogger(ILogger):
             # ...
 
         runner = CustomRunner().run()
+        
+    Config API example:
+    .. code-block:: yaml
+        loggers:
+            neptune:
+                _target_: CometLogger
+                project_name: my_project
+        ...
+    Hydra API example:
+    .. code-block:: yaml
+        loggers:
+            neptune:
+                _target_: catalyst.dl.CometLogger
+                project_name: my_project
+        ...
     """
 
     def __init__(
