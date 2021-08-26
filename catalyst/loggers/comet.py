@@ -13,21 +13,19 @@ if SETTINGS.comet_required:
 class CometLogger(ILogger):
     """Comet logger for parameters, metrics, images and other artifacts (videos, audio,
     model checkpoints, etc.).
+    You will need a Comet API Key to log your Catalyst runs to Comet.
+    You can sign up for a free account here: https://www.comet.ml/signup
 
-    Comet documentation: https://www.comet.ml/docs/
-
-    To start with Comet please check out: https://www.comet.ml/docs/quick-start/.
-    You will need an ``api_key`` to log your Catalyst runs to Comet.
+    Check out our Quickstart Guide to learn more: 
+    https://www.comet.ml/docs/quick-start/.
 
     Args:
-        workspace : Optional, ``str``. Attach an experiment to a project the belongs to this workspace.
-            Read more about workspaces in the `Comet User Interface docs <https://www.comet.ml/docs/user-interface/>`
-        project_name: Optional, ``str``, the name of the project within Comets's run.
-        experiment_id: Optional, pass an Experiment Key string if you want to continue logging to an existing experiment (resume experiment).
-            Read more about Existing Experiment `here <https://www.comet.ml/docs/python-sdk/ExistingExperiment/>`_.
-        tags: Optional, pass a list of tags to add to the Experiment. Tags will be shows in the dashboard.
-        experiment_kwargs: Optional, additional keyword arguments to be passed directly to the
-          `Experiment.__init__() <https://www.comet.ml/docs/python-sdk/Experiment/#experiment__init__>`_ function.
+        workspace : Optional,``str``, Workspace used to log the experiment.
+        project_name: Optional,``str``, Project used to log the experiment.
+        experiment_id: Optional,``str``, Experiment Key string of an existing Experiment. 
+            Used to continue logging to an existing experiment (resume experiment)..
+        tags: Optional,``list[str]``, A list of tags to add to the Experiment.
+        experiment_kwargs: Optional,``dict``, Additional keyword arguments for the Experiment object.
 
     Python API examples:
 
@@ -218,8 +216,7 @@ class CometLogger(ILogger):
         loader_batch_step: int = 0,
         loader_sample_step: int = 0,
     ) -> None:
-        """Logs artifact (arbitrary file like audio, video, model weights) to the logger."""
-
+        """Logs artifact (any arbitrary file or file like object) to the logger."""
         metadata_parameters = {
             "stage_key": stage_key,
             "loader_key": loader_key,
