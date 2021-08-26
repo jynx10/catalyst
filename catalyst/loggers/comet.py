@@ -233,7 +233,7 @@ class CometLogger(ILogger):
         loader_batch_step: int = 0,
         loader_sample_step: int = 0,
     ) -> None:
-        """Logs artifact (any arbitrary file or file like object) to the logger."""
+        """Logs artifact (any arbitrary file or object) to the logger."""
         metadata_parameters = {
             "stage_key": stage_key,
             "loader_key": loader_key,
