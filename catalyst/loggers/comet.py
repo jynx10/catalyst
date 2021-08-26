@@ -239,8 +239,7 @@ class CometLogger(ILogger):
             "loader_key": loader_key,
         }
         passed_metadata_parameters = {
-            k: v
-            for k, v in metadata_parameters.items() if v is not None
+            k: v for k, v in metadata_parameters.items() if v is not None
         }
         if path_to_artifact:
             self.experiment.log_asset(
