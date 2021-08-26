@@ -23,10 +23,10 @@ class CometLogger(ILogger):
     Args:
         workspace : Optional,``str``, Workspace used to log the experiment.
         project_name: Optional,``str``, Project used to log the experiment.
-        experiment_id: Optional,``str``, Experiment Key string of an existing Experiment. 
+        experiment_id: Optional,``str``, Experiment Key string of an existing Experiment.
             Used to continue logging to an existing experiment (resume experiment)..
         tags: Optional,``list[str]``, A list of tags to add to the Experiment.
-        experiment_kwargs: Optional,``dict``, Additional keyword arguments. 
+        experiment_kwargs: Optional,``dict``, Additional keyword arguments.
             Used to pass additional arguments to the Experiment object
 
     Python API examples:
@@ -62,7 +62,7 @@ class CometLogger(ILogger):
             # ...
 
         runner = CustomRunner().run()
-        
+
     Config API example:
     .. code-block:: yaml
         loggers:
