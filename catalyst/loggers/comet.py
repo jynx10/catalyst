@@ -11,7 +11,7 @@ if SETTINGS.comet_required:
 
 
 class CometLogger(ILogger):
-    """Comet logger for parameters, metrics, images and other artifacts 
+    """Comet logger for parameters, metrics, images and other artifacts
     (videos, audio, model checkpoints, etc.).
     
     You will need a Comet API Key to log your Catalyst runs to Comet.
@@ -24,7 +24,7 @@ class CometLogger(ILogger):
         workspace : Optional,``str``, Workspace used to log the experiment.
         project_name: Optional,``str``, Project used to log the experiment.
         experiment_id: Optional,``str``, Experiment Key string of an existing Experiment.
-            Used to continue logging to an existing experiment (resume experiment)..
+            Used to continue logging to an existing experiment (resume experiment).
         tags: Optional,``list[str]``, A list of tags to add to the Experiment.
         experiment_kwargs: Optional,``dict``, Additional keyword arguments.
             Used to pass additional arguments to the Experiment object
