@@ -72,8 +72,9 @@ class CometLogger(ILogger):
         comet_mode: str = "online",
         tags: List = None,
         logging_frequency: int = 10,
-        experiment_kwargs: dict = {},
+        **experiment_kwargs,
     ) -> None:
+        self.comet_mode = comet_mode
         self.workspace = workspace
         self.project_name = project_name
         self.experiment_id = experiment_id
@@ -81,11 +82,12 @@ class CometLogger(ILogger):
         self.comet_mode = comet_mode
         self.logging_frequency = logging_frequency
 
-        self.experiment = self._get_experiment(self.comet_mode, self.experiment_id)
+        self.experiment = self._get_experiment(self.comet_mode,
+                                               self.experiment_id)
         self.experiment.log_other("Created from", "Catalyst")
         if tags is not None:
             self.experiment.add_tags(tags)
-    
+
     def _get_experiment(self, mode, experiment_id=None):
         if mode == "offline":
             if experiment_id is not None:
@@ -151,8 +153,8 @@ class CometLogger(ILogger):
 
     def log_image(
         self,
-        tag: str = "images",
-        image: np.ndarray = [],
+        tag: str,
+        image: np.ndarray,
         scope: str = None,
         # experiment info
         run_key: str = None,
@@ -176,9 +178,9 @@ class CometLogger(ILogger):
 
         self.image_name = f"{scope}_{tag}"
 
-        self.experiment.log_image(
-            image, name=self.image_name, step=global_batch_step
-        )
+        self.experiment.log_image(image,
+                                  name=self.image_name,
+                                  step=global_batch_step)
 
     def log_hparams(
         self,
@@ -223,7 +225,8 @@ class CometLogger(ILogger):
             "loader_key": loader_key,
         }
         passed_metadata_parameters = {
-            k: v for k, v in metadata_parameters.items() if v is not None
+            k: v
+            for k, v in metadata_parameters.items() if v is not None
         }
         if path_to_artifact:
             self.experiment.log_asset(
